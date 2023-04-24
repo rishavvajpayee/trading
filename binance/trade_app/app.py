@@ -1,5 +1,6 @@
 import os
 import ccxt
+import asyncio
 from web3 import Web3
 from dotenv import load_dotenv
 
@@ -28,8 +29,8 @@ async def get_exchange(exchange):
         raise Exception("No definition of this exchange found in .env")
     return exchange
 
-def fetch_balance(exchange, coin = ""):
-    exchange = get_exchange(exchange)
+async def fetch_balance(exchange, coin = ""):
+    exchange = await get_exchange(exchange)
     balance = exchange.fetch_balance()
     account = {}
     if coin == "":
@@ -42,8 +43,19 @@ def fetch_balance(exchange, coin = ""):
         account[f"{coin}"] = balance["total"][f"{coin}"]
     return account
 
+async def tick(exchange):
+    price = exchange.fetch_ticker("BTC/USDT")
+    return price
+
+
+
+async def ticker(exchange):
+    exchange = await get_exchange(exchange)
+    price = await tick(exchange)
+    return price
+
 
 if __name__ == "__main__":
-    print(fetch_balance("binance"))
+    asyncio.run(ticker("binance"))
 
 

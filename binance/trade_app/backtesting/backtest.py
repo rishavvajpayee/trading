@@ -22,7 +22,9 @@ async def buy_function(response, websocket, uid):
     await websocket.send(f"{{Message : BUY AT {response}, uid : {uid}}}")
     return f"BUY AT {response}"
 
-
+"""
+TRADING BOT THAT RUNS ALL THE TIME
+"""
 class Bot:
     async def test(self, loss = 0.00001, profit = 0.000001, number_of_trades = 2, uid = "123",ticker = "BTC/USDT"): 
         exchange = await get_exchange("binance")

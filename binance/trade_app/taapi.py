@@ -29,3 +29,11 @@ async def api_api():
 
     # Print result
     return result.get('valueAdvice')
+
+
+
+# def call():
+#     data = requests.get('http://localhost:8000/bot')
+#     print(data.text)
+
+# call()
