@@ -4,15 +4,26 @@ Main FastAPI endpoints and host
 import logging
 import uvicorn
 import uuid
-from fastapi import FastAPI, WebSocket
-from web import generator
-from database.model import Bot
-from app import fetch_balance
+from database.config import get_db, User, Bot
+from fastapi import FastAPI, WebSocket, Depends
+from bot import generator
+from database.model import BotModel, UserModel, Data
+from exchange import fetch_balance
+# from database.config import get_db, User, Bot
 
-logging.basicConfig(level=logging.INFO)
+logging.bzasicConfig(level=logging.INFO)
 logger = logging.getLogger("FastAPI app")
 
 app = FastAPI()
+
+@app.get("/data")
+def data(data : Data ,db = Depends(get_db)):
+    data.username = "rishav"
+    user = db.query(User).filter(User.username == data.username).first()
+    # bot = db.query(Bot).filter(Bot.owner_id == 2).all()
+    bots = db.query(Bot).join(User).filter(user.id == Bot.owner_id).all()
+    return bots
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -25,18 +36,21 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.send_text(f"Echoing back: {message}")
 
 @app.post("/bot")
-async def bot(bot : Bot):
+async def bot(botdata : BotModel,db = Depends(get_db)):
     """
     Workin bot that runs in the background doing auto trades
     """
-    loss = bot.loss
-    profit = bot.profit
-    number_of_trades = bot.number_of_trades
-    ticker = bot.ticker
-    amount = bot.amount
-    exchange = bot.exchange
+
+    loss = botdata.loss
+    profit = botdata.profit
+    number_of_trades = botdata.number_of_trades
+    ticker = botdata.ticker
+    amount = botdata.amount
+    exchange = botdata.exchange
     coin = ticker.split('/')[0]
 
+    user = db.query(User).filter(User.username == "rishav", User.password == "12345").first()
+    print("User ID : ",user.id)
     balance = await fetch_balance(exchange = exchange, coin = ticker.split('/')[0])
     if amount > balance[coin]:
         return {
@@ -44,9 +58,8 @@ async def bot(bot : Bot):
         }
     else:
         uid = uuid.uuid4()
-        response =  await generator(exchange = exchange, loss = loss, profit = profit, number_of_trades = number_of_trades, uid = uid, ticker = ticker)
+        response =  await generator(exchange = exchange, loss = loss, profit = profit, number_of_trades = number_of_trades, uid = uid, ticker = ticker, user = user, db = db)
     return response
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="localhost", port=8007, log_level="info", reload=True)
-

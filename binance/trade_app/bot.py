@@ -1,27 +1,38 @@
 import asyncio
 import websockets
-from multiprocessing import Process
+from multiprocessing import Process, Value, Array
 from taapi import api_api
-from app import get_exchange
+from exchange import get_exchange
+from database.config import Bot
 
-async def withdraw_function(response, websocket, uid, last_sell, initial_buy):
+async def withdraw_function(process,response, websocket, uid, last_sell, initial_buy):
     await websocket.send(f"{{Message : WITHDRAWED AT {response}, uid : {uid}}}")
+    msg =await websocket.recv()
+    print(msg)
 
-    await websocket.send(f"{{Message : TOTAL P&L : {last_sell - initial_buy}, uid : {uid}}}")
-    return f"WITHDRAWED AT {response}"
+    await websocket.send(f"{{Message : TOTAL P&L : {last_sell - initial_buy},uid : {uid}}}")
+    msg =await websocket.recv()
+    print(msg)
+
+    return
 
 async def sell_function(response, websocket, uid):
     await websocket.send(f"{{Message : SOLD AT {response}, uid : {uid}}}")
+    msg =await websocket.recv()
+    print(msg)
+
     return f"SOLD AT {response}"
 
 async def buy_function(response, websocket, uid):
     await websocket.send(f"{{Message : BUY AT {response}, uid : {uid}}}")
+    msg =await websocket.recv()
+    print(msg)
     return f"BUY AT {response}"
 
 """
 TRADING BOT THAT RUNS ALL THE TIME
 """
-class Bot:
+class BotClass:
     async def test(self, exchange = None, loss = 0.00001, profit = 0.000001, number_of_trades = 2, uid = "123", ticker = "BTC/USDT"): 
         exchange = await get_exchange(exchange)
         bot = True
@@ -31,7 +42,7 @@ class Bot:
         last_sell = None
 
         while bot and count <= number_of_trades:
-            async with websockets.connect("ws://localhost:8765") as websocket:
+            async with websockets.connect("ws://localhost:8765/") as websocket:
                 flag = True
                 try:
                     response = exchange.fetch_ticker(ticker)
@@ -68,11 +79,11 @@ class Bot:
                     if response > stop_loss and response < profit_margin:
                         pass
                     else:
-                        await sold(response, count, number_of_trades, initial_buy, last_sell, websocket, uid)
+                        await sold(self, response, count, number_of_trades, initial_buy, last_sell, websocket, uid)
                         count += 1
                         flag = False
                         buyed = False
-                        print("socket closed")
+                        print("Trade Complete : ", count)
 
         if not bot:
             ...
@@ -81,23 +92,29 @@ class Bot:
         asyncio.run(self.test(exchange, loss, profit, number_of_trades, uid, ticker))
 
 
-async def sold(response, count, number_of_trades, initial_buy, last_sell, websocket, uid):
+
+async def sold(process,response, count, number_of_trades, initial_buy, last_sell, websocket, uid):
     await sell_function(response, websocket, uid)
     if last_sell == None and count == number_of_trades:
         last_sell = response
-        await withdraw_function(response, websocket, uid, last_sell, initial_buy)
+        await withdraw_function(process,response, websocket, uid, last_sell, initial_buy)
 
 async def check(response, stop_loss = 0.1, buy = 1023, profit = 0.2):
     stop_loss = buy - ((stop_loss/100) * buy)
     profit_margin = buy + ((profit/100) * buy)
     return stop_loss, profit_margin
 
-async def generator(exchange = None, loss = 0.00001, profit = 0.00001, number_of_trades = 2, uid = "123", ticker = "BTC/USDT"):
+async def generator(exchange = None, loss = 0.00001, profit = 0.00001, number_of_trades = 2, uid = "123", ticker = "BTC/USDT", user = None, db = None ):
     
-    p = Process(target=Bot().process, args=(exchange ,loss, profit, number_of_trades, uid, ticker))
+    p = Process(target=BotClass().process, args=(exchange ,loss, profit, number_of_trades, uid, ticker))
     p.start()
-
+    bot = Bot(name=ticker, bot_ids=uid, owner=user)
+    user.bots.append(bot)
+    db.add(user)
+    db.commit()
     return {
         "uid" : uid,
-        "status" : "running successfully"
+        "status" : "running successfully",
+        "user_id" : user.id,
+        "username" : user.username,
     }
