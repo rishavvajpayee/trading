@@ -1,6 +1,6 @@
 import requests
 
-async def api_api():
+async def vivek_api():
     key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbHVlIjoiNjQzOTE3NTA0OThkNzVkYTM2Zjk3ZTQyIiwiaWF0IjoxNjgxNDYzMjcwLCJleHAiOjMzMTg1OTI3MjcwfQ.nLZddJ0Cmh5AVduesVi2dzrVwMIE-znPZQkbHpW3n1w"
     indicator = "supertrend"
     endpoint = f"https://api.taapi.io/{indicator}"

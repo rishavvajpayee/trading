@@ -48,7 +48,7 @@ class Bot:
                         if buyed:
                             pass
                         else:
-                            message = await buy_function(response, websocket, uid)
+                            await buy_function(response, websocket, uid)
                             if initial_buy == None:
                                 initial_buy = response
                             buyprice = response

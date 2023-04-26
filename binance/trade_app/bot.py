@@ -1,64 +1,55 @@
 import asyncio
 import websockets
-from multiprocessing import Process, Value, Array
-from taapi import api_api
+from multiprocessing import Process
+from taapi import vivek_api
 from exchange import get_exchange
 from database.config import Bot
-
-async def withdraw_function(process,response, websocket, uid, last_sell, initial_buy):
-    await websocket.send(f"{{Message : WITHDRAWED AT {response}, uid : {uid}}}")
-    msg =await websocket.recv()
-    print(msg)
-
-    await websocket.send(f"{{Message : TOTAL P&L : {last_sell - initial_buy},uid : {uid}}}")
-    msg =await websocket.recv()
-    print(msg)
-
-    return
-
-async def sell_function(response, websocket, uid):
-    await websocket.send(f"{{Message : SOLD AT {response}, uid : {uid}}}")
-    msg =await websocket.recv()
-    print(msg)
-
-    return f"SOLD AT {response}"
-
-async def buy_function(response, websocket, uid):
-    await websocket.send(f"{{Message : BUY AT {response}, uid : {uid}}}")
-    msg =await websocket.recv()
-    print(msg)
-    return f"BUY AT {response}"
+from bot_utils.utils import buy_function, sold, check
 
 """
 TRADING BOT THAT RUNS ALL THE TIME
 """
+
 class BotClass:
-    async def test(self, exchange = None, loss = 0.00001, profit = 0.000001, number_of_trades = 2, uid = "123", ticker = "BTC/USDT"): 
+    """
+    BOT CLASS
+    """
+    async def runbot(self, exchange = None, loss = 0.00001, profit = 0.000001, total_number_of_trades = 2, uid = "123", ticker = "BTC/USDT"): 
+        """ 
+        Runs the bot instance in a subprocess 
+        till the number of trades limit is reached 
+        """
         exchange = await get_exchange(exchange)
         bot = True
-        buyed = None
-        count = 0
+        buyed = False
+        done_number_of_trades = 0
         initial_buy = None
         last_sell = None
 
-        while bot and count <= number_of_trades:
+        while bot and done_number_of_trades < total_number_of_trades:
+            """
+            Connect to the websocket server running on other port
+            to communicate real time with any client that connects to
+            this server.
+            """
             async with websockets.connect("ws://localhost:8765/") as websocket:
                 flag = True
+
+                """ Exception handling for any Exceptions """
                 try:
                     response = exchange.fetch_ticker(ticker)
                     response = response["last"]
-                    """
-                    VIVEK'S API
-                    """
+
                     """
                     Api to be called to get the buy sell indication
                     """
-                    api_resp = await api_api()
+                    api_resp = await vivek_api()
+
                     if api_resp == None:
                         if buyed:
                             pass
                         else:
-                            message = await buy_function(response, websocket, uid)
+                            await buy_function(response, websocket, uid)
                             if initial_buy == None:
                                 initial_buy = response
                             buyprice = response
@@ -66,52 +57,57 @@ class BotClass:
 
                     elif api_resp == "sell":
                         if buyed:
-                            sold(response, count, number_of_trades, initial_buy, last_sell, websocket, uid)
-                            count += 1
+                            await sold(response, done_number_of_trades, total_number_of_trades, initial_buy, last_sell, websocket, uid)
+                            done_number_of_trades += 1
                             flag = False
                             buyed = False
+                    
+                    else: pass
         
-                except Exception as e:
+                except Exception as error:
                     flag = False
+                    raise Exception(f"{error}")
                 
                 if flag and buyed:
                     stop_loss, profit_margin = await check(response, stop_loss = loss, buy = buyprice, profit = profit)
                     if response > stop_loss and response < profit_margin:
                         pass
                     else:
-                        await sold(self, response, count, number_of_trades, initial_buy, last_sell, websocket, uid)
-                        count += 1
+                        await sold(self, response, done_number_of_trades, total_number_of_trades, initial_buy, last_sell, websocket, uid)
+                        done_number_of_trades += 1
                         flag = False
                         buyed = False
-                        print("Trade Complete : ", count)
+                        print("Trade Complete : ", done_number_of_trades)
 
-        if not bot:
-            ...
-    
-    def process(self,exchange, loss, profit, number_of_trades, uid, ticker):
-        asyncio.run(self.test(exchange, loss, profit, number_of_trades, uid, ticker))
+    """
+    Process Fucntion that call the main bot asynchronously
+    """
+    def process(self,exchange, loss, profit, total_number_of_trades, uid, ticker):
+        asyncio.run(self.runbot(exchange, loss, profit, total_number_of_trades, uid, ticker))
 
 
-
-async def sold(process,response, count, number_of_trades, initial_buy, last_sell, websocket, uid):
-    await sell_function(response, websocket, uid)
-    if last_sell == None and count == number_of_trades:
-        last_sell = response
-        await withdraw_function(process,response, websocket, uid, last_sell, initial_buy)
-
-async def check(response, stop_loss = 0.1, buy = 1023, profit = 0.2):
-    stop_loss = buy - ((stop_loss/100) * buy)
-    profit_margin = buy + ((profit/100) * buy)
-    return stop_loss, profit_margin
-
-async def generator(exchange = None, loss = 0.00001, profit = 0.00001, number_of_trades = 2, uid = "123", ticker = "BTC/USDT", user = None, db = None ):
-    
-    p = Process(target=BotClass().process, args=(exchange ,loss, profit, number_of_trades, uid, ticker))
-    p.start()
+async def generator(exchange = None, loss = None, profit = None, total_number_of_trades = None, uid = None, ticker = None, user = None, db = None ):
+    """
+    Takes in user values and start a bot Sub-Process.
+    """
+    Process(target=BotClass().process, args=(exchange ,loss, profit, total_number_of_trades, uid, ticker)).start()
     bot = Bot(name=ticker, bot_ids=uid, owner=user)
-    user.bots.append(bot)
-    db.add(user)
-    db.commit()
+
+    """ Update values in Database """
+    try :
+        user.bots.append(bot)
+        db.add(user)
+        db.commit()
+    
+    except Exception as error:
+        return {
+            "status" : f"Database updation failed : {error}"
+        }
+
+    """ 
+    Once Done return values 
+    """
+
     return {
         "uid" : uid,
         "status" : "running successfully",

@@ -1,7 +1,6 @@
 """
 Main FastAPI endpoints and host
 """
-import logging
 import uvicorn
 import uuid
 from database.config import get_db, User, Bot
@@ -10,9 +9,6 @@ from bot import generator
 from database.model import BotModel, UserModel, Data
 from exchange import fetch_balance
 # from database.config import get_db, User, Bot
-
-logging.bzasicConfig(level=logging.INFO)
-logger = logging.getLogger("FastAPI app")
 
 app = FastAPI()
 
@@ -30,7 +26,7 @@ async def websocket_endpoint(websocket: WebSocket):
     """
     websocket endpoint and works as a ping pong server
     """
-    await websocket.accept()
+    # await websocket.accept()
     while True:
         message = await websocket.receive_text()
         await websocket.send_text(f"Echoing back: {message}")
@@ -43,14 +39,13 @@ async def bot(botdata : BotModel,db = Depends(get_db)):
 
     loss = botdata.loss
     profit = botdata.profit
-    number_of_trades = botdata.number_of_trades
+    total_number_of_trades = botdata.number_of_trades
     ticker = botdata.ticker
     amount = botdata.amount
     exchange = botdata.exchange
     coin = ticker.split('/')[0]
 
-    user = db.query(User).filter(User.username == "rishav", User.password == "12345").first()
-    print("User ID : ",user.id)
+    user = db.query(User).filter(User.username == "parth", User.password == "test123").first()
     balance = await fetch_balance(exchange = exchange, coin = ticker.split('/')[0])
     if amount > balance[coin]:
         return {
@@ -58,7 +53,16 @@ async def bot(botdata : BotModel,db = Depends(get_db)):
         }
     else:
         uid = uuid.uuid4()
-        response =  await generator(exchange = exchange, loss = loss, profit = profit, number_of_trades = number_of_trades, uid = uid, ticker = ticker, user = user, db = db)
+        response =  await generator(
+            exchange = exchange, 
+            loss = loss, 
+            profit = profit, 
+            total_number_of_trades = total_number_of_trades, 
+            uid = uid, 
+            ticker = ticker, 
+            user = user, 
+            db = db
+            )
     return response
 
 if __name__ == "__main__":
