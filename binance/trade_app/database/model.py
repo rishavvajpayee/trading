@@ -1,10 +1,10 @@
-from pydantic import BaseModel, EmailStr
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Float
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+from pydantic import BaseModel
+from pydantic import EmailStr
 
 class BotModel(BaseModel):
+    """
+    Bot Model called for API DATA
+    """
     loss : float
     profit : float
     number_of_trades : int
@@ -13,10 +13,28 @@ class BotModel(BaseModel):
     exchange : str
 
 class UserModel(BaseModel):
+    """
+    User Model calls when filling the DB with USER DATA
+    """
+    email : str
     username : str
     password : str
 
 class Data(BaseModel):
+    """
+    Used while calling "/data" endpoint
+    """
     username : str
 
+class UserCreate(BaseModel):
+    email: EmailStr
+    username: str
+    password: str
 
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class Verify(BaseModel):
+    email: EmailStr
+    otp: str

@@ -1,23 +1,38 @@
-from pydantic import BaseModel, EmailStr
+import os
+from dotenv import load_dotenv
 from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import relationship, Session, sessionmaker
-from sqlalchemy.sql import func
-import psycopg2
+from sqlalchemy.orm import relationship, sessionmaker
 
-engine = create_engine("postgresql://root:root@localhost/axxon")
+load_dotenv()
+
+"""
+Create database engine
+"""
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit = False, autoflush= False, bind = engine)
 Base = declarative_base()
 
 class User(Base):
+    """
+    user database table
+    """
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index = True)
-    email = EmailStr
+    email = Column(String)
     username = Column(String)
     password = Column(String)
-    bots = relationship("Bot", back_populates="owner")
+    otp = Column(String, nullable=True)
+    created_at = Column(String)
+    bots = relationship("Bot", back_populates="owner",  cascade="all, delete-orphan")
 
 class Bot(Base):
+    """
+    Bot database table
+    """
     __tablename__ = "bots"
     id = Column(Integer, primary_key=True, index = True)
     name = Column(String, index = True)
@@ -26,12 +41,15 @@ class Bot(Base):
     owner = relationship("User", back_populates="bots")
 
 def get_db():
+    """ utility function that gets the local DB Session """
     try:
         db = SessionLocal()
         yield db
     finally:
         db.close()
 
+
+""" Create the Base metadata """
 Base.metadata.create_all(bind = engine)
 
 

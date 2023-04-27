@@ -2,7 +2,7 @@ import uuid
 import asyncio
 import websockets
 from multiprocessing import Process
-from binance.trade_app.exchange import get_exchange
+from binance.trade_app.exchange_config.exchange import get_exchange
 from taapi import api_api
 
 async def withdraw_function(response, websocket, uid, last_sell, initial_buy):

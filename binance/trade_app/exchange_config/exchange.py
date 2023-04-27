@@ -4,9 +4,17 @@ import asyncio
 from web3 import Web3
 from dotenv import load_dotenv
 
+"loads the environment variables to be accessed by this py file"
 load_dotenv()
 
 async def get_exchange(exchange):
+
+    """
+    Creates the instance of the Exchange you want to connect to.
+    you have to create a .env file and list the credentials there first
+    in order to connect with your own exchange 
+    """
+
     test_dict = {
         "binance" :f"""ccxt.binance({{
             'apiKey': "{os.environ.get("BINANCE_API_KEY")}",
@@ -23,13 +31,21 @@ async def get_exchange(exchange):
             'secret': "{os.environ.get("XYZ_API_SECRET")}",
         }})""",
     }
+
     try :
         exchange = eval(test_dict[f"{exchange}"])
+
     except Exception as error:
-        raise Exception("No definition of this exchange found in .env")
+        raise Exception(
+            "No definition of this exchange found in .env"
+        )
+    
     return exchange
 
 async def fetch_balance(exchange, coin = ""):
+    """
+    Fetches balance from the exchange for the particular 
+    """
     exchange = await get_exchange(exchange)
     balance = exchange.fetch_balance()
     account = {}
@@ -39,23 +55,8 @@ async def fetch_balance(exchange, coin = ""):
                 pass
             else:
                 account[f"{coin}"] = balance["total"][f"{coin}"]
+
     else:
         account[f"{coin}"] = balance["total"][f"{coin}"]
+
     return account
-
-async def tick(exchange):
-    price = exchange.fetch_ticker("BTC/USDT")
-    return price
-
-
-
-async def ticker(exchange):
-    exchange = await get_exchange(exchange)
-    price = await tick(exchange)
-    return price
-
-
-if __name__ == "__main__":
-    asyncio.run(ticker("binance"))
-
-
