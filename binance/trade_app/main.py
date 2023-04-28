@@ -1,22 +1,23 @@
 """
 Main FastAPI endpoints and host
 """
-import requests
 import uvicorn
 import uuid
 import secrets
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.responses import JSONResponse
+from database.model import BotModel, UserLogin, UserCreate, Verify
 from fastapi import FastAPI, HTTPException ,WebSocket, Depends, Request
 from database.config import get_db, User, Bot
 from trading_bot.bot import generator
-from database.model import BotModel, Data, UserLogin, UserCreate, Verify
 from exchange_config.exchange import fetch_balance
 from authentication.login import logincheck
 from authentication.signup import create_user
 from authentication.verify import verify
 
+""" FastAPI app instance """
 app = FastAPI()
+
+""" Project secret key for creating session """
 secret_key = secrets.token_hex(16)
 app.add_middleware(SessionMiddleware, secret_key=secret_key, max_age=1800)
 
@@ -140,4 +141,4 @@ async def bot(botdata : BotModel, request : Request,db = Depends(get_db)):
         }
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="localhost", port=8007, log_level="info", reload=True)
+    uvicorn.run("main:app", host="localhost", port=8007, log_level="info")

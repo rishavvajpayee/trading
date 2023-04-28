@@ -15,7 +15,7 @@ async def get_exchange(exchange):
     in order to connect with your own exchange 
     """
 
-    test_dict = {
+    exchange_dict = {
         "binance" :f"""ccxt.binance({{
             'apiKey': "{os.environ.get("BINANCE_API_KEY")}",
             'secret': "{os.environ.get("BINANCE_API_SECRET")}",
@@ -33,11 +33,11 @@ async def get_exchange(exchange):
     }
 
     try :
-        exchange = eval(test_dict[f"{exchange}"])
+        exchange = eval(exchange_dict[f"{exchange}"])
 
     except Exception as error:
         raise Exception(
-            "No definition of this exchange found in .env"
+            "No definition of this exchange found in environment variables"
         )
     
     return exchange

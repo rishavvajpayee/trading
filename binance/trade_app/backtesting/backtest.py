@@ -2,8 +2,9 @@ import uuid
 import asyncio
 import websockets
 from multiprocessing import Process
-from binance.trade_app.exchange_config.exchange import get_exchange
-from taapi import api_api
+from exchange_config.exchange import get_exchange
+from machine_learning.ml_api import vivek_api
+
 
 async def withdraw_function(response, websocket, uid, last_sell, initial_buy):
     await websocket.send(f"{{Message : WITHDRAWED AT {response}, uid : {uid}}}")
@@ -19,11 +20,22 @@ async def buy_function(response, websocket, uid):
     await websocket.send(f"{{Message : BUY AT {response}, uid : {uid}}}")
     return f"BUY AT {response}"
 
+async def sold(response, count, number_of_trades, initial_buy, last_sell, websocket, uid):
+    await sell_function(response, websocket, uid)
+    if last_sell == None and count == number_of_trades:
+        last_sell = response
+        await withdraw_function(response, websocket, uid, last_sell, initial_buy)
+
+async def check(stop_loss = None, buy = None, profit = None):
+    stop_loss = buy - ((stop_loss/100) * buy)
+    profit_margin = buy + ((profit/100) * buy)
+    return stop_loss, profit_margin
+
 """
 TRADING BOT THAT RUNS ALL THE TIME
 """
-class Bot:
-    async def test(self, loss = 0.00001, profit = 0.000001, number_of_trades = 2, uid = "123",ticker = "BTC/USDT"): 
+class TestBot:
+    async def test(self, loss = None, profit = None, number_of_trades = None, uid = None,ticker = None): 
         exchange = await get_exchange("binance")
         bot = True
         buyed = None
@@ -43,7 +55,7 @@ class Bot:
                     """
                     Api to be called to get the buy sell indication
                     """
-                    api_resp = await api_api()
+                    api_resp = await vivek_api()
                     if api_resp == None:
                         if buyed:
                             pass
@@ -65,7 +77,7 @@ class Bot:
                     flag = False
                 
                 if flag and buyed:
-                    stop_loss, profit_margin = await check(response, stop_loss = loss, buy = buyprice, profit = profit)
+                    stop_loss, profit_margin = await check(stop_loss = loss, buy = buyprice, profit = profit)
                     if response > stop_loss and response < profit_margin:
                         pass
                     else:
@@ -74,31 +86,28 @@ class Bot:
                         flag = False
                         buyed = False
                         print("socket closed")
-
-        if not bot:
-            ...
     
     def process(self, loss, profit, number_of_trades, uid, ticker):
         asyncio.run(self.test(loss, profit, number_of_trades, uid, ticker))
 
 
-async def sold(response, count, number_of_trades, initial_buy, last_sell, websocket, uid):
-    await sell_function(response, websocket, uid)
-    if last_sell == None and count == number_of_trades:
-        last_sell = response
-        await withdraw_function(response, websocket, uid, last_sell, initial_buy)
 
-async def check(response, stop_loss = 0.1, buy = 1023, profit = 0.2):
-    stop_loss = buy - ((stop_loss/100) * buy)
-    profit_margin = buy + ((profit/100) * buy)
-    return stop_loss, profit_margin
-
-async def generator(loss = 0.00001, profit = 0.00001, number_of_trades = 2, uid = "123", ticker = "BTC/USDT"):
-    uid = uuid.uuid4()
-    p = Process(target=Bot().process, args=(loss, profit, number_of_trades, uid, ticker))
-    p.start()
+async def generator(exchange = None, loss = None, profit = None, total_number_of_trades = None, uid = None, ticker = None, user = None, db = None ):
+    """
+    Takes in user values and start a bot Sub-Process.
+    """
+    try :
+        Process(target=TestBot().process, args=(exchange ,loss, profit, total_number_of_trades, uid, ticker)).start()
+    
+    except Exception as error:
+        return {
+            "status" : "Bot process start failed"
+        }
+    """ 
+    Once Done return values 
+    """
 
     return {
         "uid" : uid,
-        "status" : "running successfully"
+        "status" : "running successfully",
     }

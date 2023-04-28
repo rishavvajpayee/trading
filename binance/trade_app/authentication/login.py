@@ -3,7 +3,6 @@ import os
 import jwt
 import random
 import smtplib
-from database.config import User
 from fastapi import HTTPException
 from dotenv import load_dotenv
 from email.mime.text import MIMEText
