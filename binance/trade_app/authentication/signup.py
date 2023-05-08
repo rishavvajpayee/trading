@@ -7,6 +7,7 @@ from database.config import User
 load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY')
 
+
 def create_user(db, user):
     """
     creation of user

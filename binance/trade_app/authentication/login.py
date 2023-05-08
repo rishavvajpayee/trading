@@ -38,12 +38,9 @@ def logincheck(db, user, db_user):
         """ OTP SEND can be sent here """
         db_user.otp = otp
         db.commit()
-    
     except Exception as error:
         raise HTTPException(status_code=400, detail=f"{error}")
-    
     return db_user
-
 
 def send_otp(to_email):
     """

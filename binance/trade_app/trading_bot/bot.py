@@ -8,6 +8,7 @@ from database.config import Bot
 from bot_utils.utils import buy_function, sold, check
 from dotenv import load_dotenv
 
+""" loads the environment """
 load_dotenv()
 
 """
@@ -15,8 +16,10 @@ TRADING BOT THAT RUNS ALL THE TIME
 """
 
 class BotClass:
-    """ BOT CLASS """
-    async def runbot(self, exchange = None, loss = 0.00001, profit = 0.000001, total_number_of_trades = 2, uid = "123", ticker = "BTC/USDT"): 
+    """ 
+    BOT CLASS 
+    """ 
+    async def runbot(self, amount = None, price = None ,exchange = None, loss = 0.00001, profit = 0.000001, total_number_of_trades = 2, uid = "123", ticker = "BTC/USDT"): 
         """ 
         Runs the bot instance in a subprocess
         """
@@ -29,6 +32,7 @@ class BotClass:
         pt_buy = None
         pt_sell = None
         total_pnl = 0
+        symbol = ticker
         
         while bot and done_number_of_trades < total_number_of_trades:
             """
@@ -37,7 +41,6 @@ class BotClass:
             this server.
             """
             try :
-
                 async with websockets.connect(os.environ.get("LOCAL_WEBSOCKET_URL")) as websocket:
                     flag = True
 
@@ -59,7 +62,7 @@ class BotClass:
                             if buyed:
                                 pass
                             else:
-                                await buy_function(response, websocket, uid)
+                                await buy_function(response, websocket, uid,  symbol, amount, price)
                                 if initial_buy == None:
                                     initial_buy = response
                                 pt_buy = response
@@ -86,7 +89,7 @@ class BotClass:
                             if response > stop_loss and response < profit_margin:
                                 pass
                             else:
-                                done_number_of_trades, total_pnl = await sold(response, done_number_of_trades, total_number_of_trades, initial_buy, last_sell, websocket, uid, pt_buy, pt_sell, total_pnl)
+                                done_number_of_trades, total_pnl = await sold(response, done_number_of_trades, total_number_of_trades, initial_buy, last_sell, websocket, uid, pt_buy, pt_sell, total_pnl,  symbol, amount, price)
 
                                 flag = False
                                 buyed = False
@@ -110,13 +113,18 @@ async def generator(
         loss = None, 
         profit = None, 
         total_number_of_trades = None, 
-        uid = None, ticker = None, user = None, db = None 
+        uid = None, 
+        ticker = None, 
+        user = None, 
+        db = None,
+        amount = None,
+        price = None
     ):
     """
     Takes in user values and start a bot Sub-Process.
     """
     try :
-        Process(target=BotClass().process, args=(exchange ,loss, profit, total_number_of_trades, uid, ticker)).start()
+        Process(target=BotClass().process, args=(amount, price,exchange ,loss, profit, total_number_of_trades, uid, ticker)).start()
         bot = Bot(name=ticker, bot_ids=uid, owner=user)
     
     except Exception as error:
@@ -145,5 +153,6 @@ async def generator(
         "status" : "running successfully",
         "user_id" : user.id,
         "username" : user.username,
-        "email" : user.email
+        "email" : user.email,
+        "name" : ticker
     }

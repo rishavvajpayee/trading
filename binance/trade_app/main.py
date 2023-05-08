@@ -9,6 +9,7 @@ from database.model import BotModel, UserLogin, UserCreate, Verify
 from fastapi import FastAPI, HTTPException ,WebSocket, Depends, Request
 from database.config import get_db, User, Bot
 from trading_bot.bot import generator
+from exchange_config.exchange import get_exchange
 from exchange_config.exchange import fetch_balance
 from authentication.login import logincheck
 from authentication.signup import create_user
@@ -102,7 +103,7 @@ def verify_otp(user: Verify, db = Depends(get_db)):
 @app.post("/bot")
 async def bot(botdata : BotModel, request : Request,db = Depends(get_db)):
     """
-    Workin bot that runs in the background doing auto trades
+    Working bot that runs in the background doing auto trades
     """
 
     loss = botdata.loss
@@ -111,8 +112,14 @@ async def bot(botdata : BotModel, request : Request,db = Depends(get_db)):
     ticker = botdata.ticker
     amount = botdata.amount
     exchange = botdata.exchange
+    price = botdata.price
     coin = ticker.split('/')[0]
 
+    """ get price function """
+    if price is None:
+        "get real time price "
+        price = await get_exchange(exchange).fetch_ticker(ticker)["last"]
+    
     session = request.session
     email = session.get("email", "")
     user = db.query(User).filter(User.email == email).first()
@@ -132,7 +139,9 @@ async def bot(botdata : BotModel, request : Request,db = Depends(get_db)):
                 uid = uid,
                 ticker = ticker,
                 user = user,
-                db = db
+                db = db,
+                amount = amount,
+                price = price
             )
         return response
     else:
