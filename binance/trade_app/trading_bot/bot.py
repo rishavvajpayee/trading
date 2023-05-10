@@ -19,7 +19,17 @@ class BotClass:
     """ 
     BOT CLASS 
     """ 
-    async def runbot(self, amount = None, price = None ,exchange = None, loss = 0.00001, profit = 0.000001, total_number_of_trades = 2, uid = "123", ticker = "BTC/USDT"): 
+    async def runbot(
+            self, 
+            amount = None, 
+            price = None ,
+            exchange = None, 
+            loss = 0.00001, 
+            profit = 0.000001, 
+            total_number_of_trades = 2, 
+            uid = "123", 
+            ticker = "BTC/USDT"
+        ): 
         """ 
         Runs the bot instance in a subprocess
         """
@@ -62,20 +72,42 @@ class BotClass:
                             if buyed:
                                 pass
                             else:
-                                await buy_function(response, websocket, uid,  symbol, amount, price)
+                                await buy_function(
+                                    response, 
+                                    websocket, 
+                                    uid, 
+                                    exchange, 
+                                    symbol, 
+                                    price
+                                )
                                 if initial_buy == None:
                                     initial_buy = response
-                                pt_buy = response
 
+                                pt_buy = response
                                 buyprice = response
                                 buyed = True
 
                         elif api_resp == "sell":
                             if buyed:
-                                await sold(response, done_number_of_trades, total_number_of_trades, initial_buy, last_sell, websocket, uid)
+                                done_number_of_trades, total_pnl = await sold(
+                                    response, 
+                                    done_number_of_trades, 
+                                    total_number_of_trades, 
+                                    initial_buy, last_sell, 
+                                    websocket,
+                                    uid, 
+                                    pt_buy, 
+                                    pt_sell, 
+                                    total_pnl, 
+                                    exchange ,
+                                    symbol, 
+                                    amount, 
+                                    price
+                                )
                                 done_number_of_trades += 1
                                 flag = False
                                 buyed = False
+                                print(f"{{trade complete : {done_number_of_trades}, uid : {uid}}}")
                         
                         else: pass
             
@@ -85,11 +117,32 @@ class BotClass:
                     
                     try:
                         if flag and buyed:
-                            stop_loss, profit_margin = await check(response, stop_loss = loss, buy = buyprice, profit = profit)
+                            stop_loss, profit_margin = await check(
+                                response, 
+                                stop_loss = loss, 
+                                buy = buyprice, 
+                                profit = profit
+                            )
+
                             if response > stop_loss and response < profit_margin:
                                 pass
                             else:
-                                done_number_of_trades, total_pnl = await sold(response, done_number_of_trades, total_number_of_trades, initial_buy, last_sell, websocket, uid, pt_buy, pt_sell, total_pnl,  symbol, amount, price)
+                                done_number_of_trades, total_pnl = await sold(
+                                    response, 
+                                    done_number_of_trades, 
+                                    total_number_of_trades, 
+                                    initial_buy, 
+                                    last_sell, 
+                                    websocket, 
+                                    uid, 
+                                    pt_buy, 
+                                    pt_sell, 
+                                    total_pnl, 
+                                    exchange, 
+                                    symbol, 
+                                    amount, 
+                                    price
+                                )
 
                                 flag = False
                                 buyed = False
@@ -104,8 +157,24 @@ class BotClass:
     """
     Process Function that call the main bot asynchronously
     """
-    def process(self,exchange, loss, profit, total_number_of_trades, uid, ticker):
-        asyncio.run(self.runbot(exchange, loss, profit, total_number_of_trades, uid, ticker))
+    def process(
+            self,
+            exchange, 
+            loss, 
+            profit, 
+            total_number_of_trades, 
+            uid, 
+            ticker
+        ):
+        """ async process """
+        asyncio.run(self.runbot(
+            exchange, 
+            loss, 
+            profit, 
+            total_number_of_trades, 
+            uid, 
+            ticker
+        ))
 
 
 async def generator(
@@ -124,7 +193,16 @@ async def generator(
     Takes in user values and start a bot Sub-Process.
     """
     try :
-        Process(target=BotClass().process, args=(amount, price,exchange ,loss, profit, total_number_of_trades, uid, ticker)).start()
+        Process(target=BotClass().process, args=(
+            amount, 
+            price,
+            exchange,
+            loss, 
+            profit, 
+            total_number_of_trades, 
+            uid, 
+            ticker)).start()
+        
         bot = Bot(name=ticker, bot_ids=uid, owner=user)
     
     except Exception as error:

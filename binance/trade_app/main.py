@@ -68,7 +68,7 @@ async def login(user: UserLogin, request : Request, db = Depends(get_db)):
             session = request.session
             session["email"] = user.email
             return session
-        
+         
     
     except Exception as e:
         return {

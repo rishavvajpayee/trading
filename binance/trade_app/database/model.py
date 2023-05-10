@@ -11,6 +11,7 @@ class BotModel(BaseModel):
     ticker : str
     amount : float
     exchange : str
+    price : str
 
 class UserModel(BaseModel):
     """
