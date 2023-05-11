@@ -14,7 +14,7 @@ async def vivek_api():
     parameters = {
         'secret': key,
         'exchange': 'binance',
-        'symbol': 'BTC/USDT',
+        'symbol': 'ARB/USDT',
         'interval': '1h'
     } 
     

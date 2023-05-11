@@ -3,10 +3,26 @@ Utility functions for running Bot
 """
 import ccxt
 from fastapi import HTTPException
+from exchange_config.exchange import fetch_balance, get_exchange
 
 async def per_trade_calc(pt_buy, pt_sell):
     calc = pt_sell - pt_buy
     return calc
+
+async def fetch_curr_price(exchange, ticker):
+    price = exchange.fetch_ticker(ticker)["ask"] + exchange.fetch_ticker(ticker)["bid"] / 2
+    return price
+
+async def getbalance(exchange, ticker):
+    balance = await fetch_balance(exchange)
+    print(balance)
+    return balance[ticker.split("/")[0]]
+
+
+async def get_price(exchange, ticker, price):
+    current_price =  exchange.fetch_ticker(ticker)["ask"] + exchange.fetch_ticker(ticker)["bid"] / 2
+    amount = price / current_price
+    return amount, exchange
 
 async def withdraw_function(
         response, 
@@ -15,7 +31,6 @@ async def withdraw_function(
         total_pnl, 
         exchange, 
         symbol, 
-        amount
     ):
 
     """ Withdraw the amount from exchange to any wallet ( Metamask ) """
@@ -28,15 +43,17 @@ async def withdraw_function(
         raise HTTPException(code = 500, detail = "DB error cannot get the withdraw address from database")
 
     try :
-        order = await exchange.withdraw(
-                    code=symbol.split("/")[-1],
-                    amount=amount,
-                    address = address,
-                    tag = None,
-                    params = {
-                        "network" : "ARB"
-                    }
-                )
+        # amount = await getbalance(exchange, symbol)
+        # order = await exchange.withdraw(
+        #             code=symbol.split("/")[0],
+        #             amount=amount,
+        #             address = address,
+        #             tag = None,
+        #             params = {
+        #                 "network" : "ARB"
+        #             }
+        #         )
+        order = "Withdrawed"
         await websocket.send(f"{{status : success, order : {order}}}")
 
     except ccxt.NetworkError as e:
@@ -57,17 +74,16 @@ async def withdraw_function(
 
 
 async def sell_function(
-        response,
-        websocket,
-        uid,
-        pt_buy,
-        pt_sell,
-        done_number_of_trades,
-        total_pnl,
-        exchange,
-        symbol,
-        amount,
-        price
+        response = None,
+        websocket = None,
+        uid = None,
+        pt_buy = None,
+        pt_sell = None,
+        done_number_of_trades = None,
+        total_pnl = None,
+        exchange = None,
+        symbol = None,
+        price = None
     ):
     """
     Sell the bought assets ( works on the exchange directly )
@@ -75,11 +91,20 @@ async def sell_function(
     """
 
     try :
-        order = await exchange.create_market_sell_order(
+        balance = await fetch_balance(exchange)
+        amount = balance[symbol.split("/")[0]]
+
+        order = exchange.create_order(
                     symbol,
-                    price
+                    "market",
+                    "sell",
+                    amount
                 )
-        await websocket.send(f"{{status : success, order : {order}}}")
+        print(order)
+        if order:
+            await websocket.send(f"{{status : success, order : {order}}}")
+        else:
+            await websocket.send(f"{{status : failed}}")
 
     except ccxt.NetworkError as e:
         raise HTTPException(status_code = 500, detail = f'Network Error {e}')
@@ -93,7 +118,7 @@ async def sell_function(
     except Exception as error:
         raise HTTPException(status_code=500, detail=error)
     
-    await websocket.send(f"{{SOLD : {response}, uid : {uid}, order : {order}}}")
+    await websocket.send(f"{{SOLD : {amount}, uid : {uid}, order : {order}}}")
     
 
     try:
@@ -116,9 +141,9 @@ async def buy_function(response, websocket, uid, exchange, symbol, price):
     try:
         current_price =  exchange.fetch_ticker(symbol)["ask"] + exchange.fetch_ticker(symbol)["bid"] / 2
         amount = price / current_price
-        order = await exchange.create_order(
+        order = exchange.create_order(
                     symbol,
-                    "market"
+                    "market",
                     "buy",
                     amount,
                 )
@@ -142,7 +167,7 @@ async def buy_function(response, websocket, uid, exchange, symbol, price):
         raise HTTPException(status_code=500, detail=error)
     
 
-    await websocket.send(f"{{BUY : {response}, uid : {uid}}}")
+    await websocket.send(f"{{BUY : {price}, uid : {uid}}}")
 
 
 
@@ -150,17 +175,16 @@ async def buy_function(response, websocket, uid, exchange, symbol, price):
 async def sold(
         response, 
         done_number_of_trades, 
-        number_of_trades, 
-        initial_buy, 
-        last_sell,
+        total_number_of_trades, 
+        initial_buy,
+        last_sell, 
         websocket, 
         uid, 
         pt_buy, 
         pt_sell, 
         total_pnl, 
-        exchange,
-        symbol, 
-        amount, 
+        exchange, 
+        symbol,  
         price
     ):
     """
@@ -170,20 +194,20 @@ async def sold(
     thus stopping the bot and the process itself
     """
     done_number_of_trades, total_pnl = await sell_function(
-        response, 
-        websocket, 
-        uid, 
-        pt_buy, 
-        pt_sell, 
-        done_number_of_trades, 
-        total_pnl, 
-        exchange, 
-        symbol, 
-        amount, 
-        price
+        response = response, 
+        websocket = websocket, 
+        uid = uid, 
+        pt_buy = pt_buy, 
+        pt_sell= pt_sell, 
+        done_number_of_trades = done_number_of_trades, 
+        total_pnl = total_pnl, 
+        exchange = exchange, 
+        symbol = symbol, 
+        price = price
     )
-    if last_sell == None and done_number_of_trades == number_of_trades:
+    if last_sell == None and done_number_of_trades == total_number_of_trades:
         last_sell = response
+        
         await withdraw_function(
             response, 
             websocket, 
@@ -191,7 +215,6 @@ async def sold(
             total_pnl, 
             exchange, 
             symbol, 
-            amount
         )
 
     return done_number_of_trades, total_pnl

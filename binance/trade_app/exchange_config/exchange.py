@@ -46,7 +46,12 @@ async def fetch_balance(exchange, coin = ""):
     """
     Fetches balance from the exchange for the particular 
     """
-    exchange = await get_exchange(exchange)
+    if type(exchange) == type:
+        pass
+
+    elif type(exchange) == str: 
+        exchange = await get_exchange(exchange)
+
     balance = exchange.fetch_balance()
     account = {}
     if coin == "":

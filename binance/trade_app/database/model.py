@@ -9,9 +9,8 @@ class BotModel(BaseModel):
     profit : float
     number_of_trades : int
     ticker : str
-    amount : float
     exchange : str
-    price : str
+    price : float
 
 class UserModel(BaseModel):
     """

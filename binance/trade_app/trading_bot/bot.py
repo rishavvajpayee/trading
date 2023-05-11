@@ -5,7 +5,7 @@ from multiprocessing import Process
 from machine_learning.ml_api import vivek_api
 from exchange_config.exchange import get_exchange
 from database.config import Bot
-from bot_utils.utils import buy_function, sold, check
+from bot_utils.utils import buy_function, sold, check, getbalance, fetch_curr_price
 from dotenv import load_dotenv
 
 """ loads the environment """
@@ -20,15 +20,14 @@ class BotClass:
     BOT CLASS 
     """ 
     async def runbot(
-            self, 
-            amount = None, 
+            self,  
             price = None ,
             exchange = None, 
-            loss = 0.00001, 
-            profit = 0.000001, 
-            total_number_of_trades = 2, 
-            uid = "123", 
-            ticker = "BTC/USDT"
+            loss = None, 
+            profit = None, 
+            total_number_of_trades = None, 
+            uid = None, 
+            ticker = None
         ): 
         """ 
         Runs the bot instance in a subprocess
@@ -59,8 +58,10 @@ class BotClass:
                     """
                     try:
 
-                        response = exchange.fetch_ticker(ticker)
-                        response = response["last"]
+                        # response = exchange.fetch_ticker(ticker)
+                        # response = response["last"]
+
+                        response = price
 
                         """
                         Api to be called to get the buy sell indication
@@ -93,7 +94,7 @@ class BotClass:
                                     response, 
                                     done_number_of_trades, 
                                     total_number_of_trades, 
-                                    initial_buy, last_sell, 
+                                    last_sell, 
                                     websocket,
                                     uid, 
                                     pt_buy, 
@@ -101,7 +102,6 @@ class BotClass:
                                     total_pnl, 
                                     exchange ,
                                     symbol, 
-                                    amount, 
                                     price
                                 )
                                 done_number_of_trades += 1
@@ -109,7 +109,7 @@ class BotClass:
                                 buyed = False
                                 print(f"{{trade complete : {done_number_of_trades}, uid : {uid}}}")
                         
-                        else: pass
+                        else: continue
             
                     except Exception as error:
                         flag = False
@@ -123,15 +123,21 @@ class BotClass:
                                 buy = buyprice, 
                                 profit = profit
                             )
+                            balance = await getbalance(exchange, ticker)
+                            print(balance)
+                            current_price = await fetch_curr_price(exchange, ticker)
 
-                            if response > stop_loss and response < profit_margin:
+                            current_price = balance * current_price
+                            print(f"Current price : {current_price} , stop_loss : {stop_loss}, profit_margin : {profit_margin}")
+
+                            if current_price > stop_loss and current_price < profit_margin:
                                 pass
                             else:
                                 done_number_of_trades, total_pnl = await sold(
                                     response, 
                                     done_number_of_trades, 
                                     total_number_of_trades, 
-                                    initial_buy, 
+                                    initial_buy,
                                     last_sell, 
                                     websocket, 
                                     uid, 
@@ -139,8 +145,7 @@ class BotClass:
                                     pt_sell, 
                                     total_pnl, 
                                     exchange, 
-                                    symbol, 
-                                    amount, 
+                                    symbol,  
                                     price
                                 )
 
@@ -159,7 +164,8 @@ class BotClass:
     """
     def process(
             self,
-            exchange, 
+            price,
+            exchange,
             loss, 
             profit, 
             total_number_of_trades, 
@@ -168,6 +174,7 @@ class BotClass:
         ):
         """ async process """
         asyncio.run(self.runbot(
+            price,
             exchange, 
             loss, 
             profit, 
@@ -186,7 +193,6 @@ async def generator(
         ticker = None, 
         user = None, 
         db = None,
-        amount = None,
         price = None
     ):
     """
@@ -194,7 +200,6 @@ async def generator(
     """
     try :
         Process(target=BotClass().process, args=(
-            amount, 
             price,
             exchange,
             loss, 

@@ -110,22 +110,16 @@ async def bot(botdata : BotModel, request : Request,db = Depends(get_db)):
     profit = botdata.profit
     total_number_of_trades = botdata.number_of_trades
     ticker = botdata.ticker
-    amount = botdata.amount
     exchange = botdata.exchange
     price = botdata.price
-    coin = ticker.split('/')[0]
+    coin = ticker.split('/')[1]
 
-    """ get price function """
-    if price is None:
-        "get real time price "
-        price = await get_exchange(exchange).fetch_ticker(ticker)["last"]
-    
     session = request.session
     email = session.get("email", "")
     user = db.query(User).filter(User.email == email).first()
     if user:
-        balance = await fetch_balance(exchange = exchange, coin = ticker.split('/')[0])
-        if amount > balance[coin]:
+        balance = await fetch_balance(exchange = exchange, coin = ticker.split('/')[1])
+        if price > balance[coin]:
             return {
                 "message" : "amount exceeds Balance"
             }
@@ -140,7 +134,6 @@ async def bot(botdata : BotModel, request : Request,db = Depends(get_db)):
                 ticker = ticker,
                 user = user,
                 db = db,
-                amount = amount,
                 price = price
             )
         return response
@@ -150,4 +143,4 @@ async def bot(botdata : BotModel, request : Request,db = Depends(get_db)):
         }
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="localhost", port=8007, log_level="info")
+    uvicorn.run("main:app", host="localhost", port=8007, log_level="info", reload = True)
