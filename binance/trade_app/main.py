@@ -1,15 +1,14 @@
 """
 Main FastAPI endpoints and host
 """
-import uvicorn
 import uuid
+import uvicorn
 import secrets
 from starlette.middleware.sessions import SessionMiddleware
 from database.model import BotModel, UserLogin, UserCreate, Verify
 from fastapi import FastAPI, HTTPException ,WebSocket, Depends, Request
-from database.config import get_db, User, Bot
+from database.config import get_db, User, Bot, SessionLocal
 from trading_bot.bot import generator
-from exchange_config.exchange import get_exchange
 from exchange_config.exchange import fetch_balance
 from authentication.login import logincheck
 from authentication.signup import create_user
@@ -33,6 +32,7 @@ def data(request: Request,db = Depends(get_db)):
             "user" : session.get("email"),
             "bots" : bots
         }
+    
     else:
         return {
             "message" : "not Logged in"
@@ -133,8 +133,8 @@ async def bot(botdata : BotModel, request : Request,db = Depends(get_db)):
                 uid = uid,
                 ticker = ticker,
                 user = user,
-                db = db,
-                price = price
+                price = price,
+                session_arg = SessionLocal
             )
         return response
     else:

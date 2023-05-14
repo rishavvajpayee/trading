@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
+from sqlalchemy import Column, ForeignKey, Integer, String, Float, DateTime, create_engine
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
@@ -18,7 +18,7 @@ Base = declarative_base()
 
 class User(Base):
     """
-    user database table
+    user database tablee
     """
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index = True)
@@ -39,6 +39,19 @@ class Bot(Base):
     bot_ids = Column(String)
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="bots")
+    trades = relationship("Trade", back_populates="bot", cascade="all, delete-orphan")
+
+class Trade(Base):
+    """
+    Trade Database table
+    """
+    __tablename__ = "trades"
+    id = Column(Integer, primary_key=True, index=True)
+    bot_id = Column(Integer, ForeignKey('bots.id'))
+    bot = relationship("Bot", back_populates="trades")
+    buy_value = Column(Float)
+    sell_value = Column(Float)
+    timestamp = Column(DateTime)
 
 def get_db():
     """ utility function that gets the local DB Session """

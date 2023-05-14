@@ -1,7 +1,4 @@
 import os
-import ccxt
-import asyncio
-from web3 import Web3
 from dotenv import load_dotenv
 
 "loads the environment variables to be accessed by this py file"

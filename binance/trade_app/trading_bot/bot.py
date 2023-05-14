@@ -1,10 +1,11 @@
 import os
 import asyncio
 import websockets
+from datetime import datetime
 from multiprocessing import Process
 from machine_learning.ml_api import vivek_api
 from exchange_config.exchange import get_exchange
-from database.config import Bot
+from database.config import Bot, Trade
 from bot_utils.utils import buy_function, sold, check, getbalance, fetch_curr_price
 from dotenv import load_dotenv
 
@@ -27,9 +28,10 @@ class BotClass:
             profit = None, 
             total_number_of_trades = None, 
             uid = None, 
-            ticker = None
-        ): 
-        """ 
+            ticker = None,
+            session_arg = None
+        ):
+        """
         Runs the bot instance in a subprocess
         """
         exchange = await get_exchange(exchange)
@@ -42,6 +44,7 @@ class BotClass:
         pt_sell = None
         total_pnl = 0
         symbol = ticker
+        db = session_arg
         
         while bot and done_number_of_trades < total_number_of_trades:
             """
@@ -57,12 +60,30 @@ class BotClass:
                     Exception handling for any Exceptions 
                     """
                     try:
-
-                        # response = exchange.fetch_ticker(ticker)
-                        # response = response["last"]
-
                         response = price
+                        """
+                        i need to add the Trade DB setup here to update the
+                        bot trading data.
+                        """
+                        
+                        """ Bot Trade start save in DB """
+                        NOW = datetime.now()
+                        dbbot = db.query(Bot).filter(Bot.id == uid).first()
+                        trade = Trade(bot_id = uid, buy_value = response, timestamp = NOW.strftime("%d/%m/%Y %H:%M:%S"))
 
+                        """
+                        DB SAVE
+                        """
+                        try:
+                            dbbot.trades.append(trade)
+                            db.add(dbbot)
+                            db.commit()
+                            db.refresh(dbbot)
+                        
+                        except Exception as error:
+                            await websocket.send(f"{{message : DB update error for buy at {price}, error : {error}}}")
+
+                        
                         """
                         Api to be called to get the buy sell indication
                         """
@@ -148,7 +169,6 @@ class BotClass:
                                     symbol,  
                                     price
                                 )
-
                                 flag = False
                                 buyed = False
                                 print(f"{{trade complete : {done_number_of_trades}, uid : {uid}}}")
@@ -170,7 +190,8 @@ class BotClass:
             profit, 
             total_number_of_trades, 
             uid, 
-            ticker
+            ticker,
+            session_arg
         ):
         """ async process """
         asyncio.run(self.runbot(
@@ -180,7 +201,8 @@ class BotClass:
             profit, 
             total_number_of_trades, 
             uid, 
-            ticker
+            ticker,
+            session_arg
         ))
 
 
@@ -192,8 +214,8 @@ async def generator(
         uid = None, 
         ticker = None, 
         user = None, 
-        db = None,
-        price = None
+        price = None,
+        session_arg = None
     ):
     """
     Takes in user values and start a bot Sub-Process.
@@ -206,13 +228,15 @@ async def generator(
             profit, 
             total_number_of_trades, 
             uid, 
-            ticker)).start()
+            ticker,
+            session_arg 
+            )).start()
         
         bot = Bot(name=ticker, bot_ids=uid, owner=user)
     
     except Exception as error:
         return {
-            "status" : "Bot process start failed"
+            "status" : f"Bot process start failed : {error}"
         }
 
     """ Update values in Database """

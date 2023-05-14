@@ -34,7 +34,7 @@ def create_user(db, user):
         
         except Exception as error:
             return {
-                "Status": "Creatiion failed"
+                "Status": "Creation failed"
             }
     else:
         return {

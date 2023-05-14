@@ -43,16 +43,18 @@ async def withdraw_function(
         raise HTTPException(code = 500, detail = "DB error cannot get the withdraw address from database")
 
     try :
-        # amount = await getbalance(exchange, symbol)
-        # order = await exchange.withdraw(
-        #             code=symbol.split("/")[0],
-        #             amount=amount,
-        #             address = address,
-        #             tag = None,
-        #             params = {
-        #                 "network" : "ARB"
-        #             }
-        #         )
+        """
+        amount = await getbalance(exchange, symbol)
+        order = await exchange.withdraw(
+                    code=symbol.split("/")[0],
+                    amount=amount,
+                    address = address,
+                    tag = None,
+                    params = {
+                        "network" : "ARB"
+                    }
+                )
+        """
         order = "Withdrawed"
         await websocket.send(f"{{status : success, order : {order}}}")
 
