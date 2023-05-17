@@ -2,6 +2,8 @@
 Utility functions for running Bot
 """
 import ccxt
+import json
+import requests
 from fastapi import HTTPException
 from exchange_config.exchange import fetch_balance, get_exchange
 
@@ -17,7 +19,6 @@ async def getbalance(exchange, ticker):
     balance = await fetch_balance(exchange)
     print(balance)
     return balance[ticker.split("/")[0]]
-
 
 async def get_price(exchange, ticker, price):
     current_price =  exchange.fetch_ticker(ticker)["ask"] + exchange.fetch_ticker(ticker)["bid"] / 2
@@ -93,9 +94,14 @@ async def sell_function(
     """
 
     try :
-        balance = await fetch_balance(exchange)
-        amount = balance[symbol.split("/")[0]]
+        # balance = await fetch_balance(exchange)
+        # balance = balance[symbol.split("/")[0]]
 
+        balance = await getbalance(exchange, symbol)
+        print(balance)
+        amount = balance
+        current_price = await fetch_curr_price(exchange, symbol)
+        sell_price = balance * current_price
         order = exchange.create_order(
                     symbol,
                     "market",
@@ -104,7 +110,7 @@ async def sell_function(
                 )
         print(order)
         if order:
-            await websocket.send(f"{{status : success, order : {order}}}")
+            await websocket.send(f"{{SOLD : {amount}, uid : {uid}, order : {order}}}")
         else:
             await websocket.send(f"{{status : failed}}")
 
@@ -120,19 +126,16 @@ async def sell_function(
     except Exception as error:
         raise HTTPException(status_code=500, detail=error)
     
-    await websocket.send(f"{{SOLD : {amount}, uid : {uid}, order : {order}}}")
-    
 
     try:
-        pt_sell = response
+        pt_sell = sell_price
         total_pnl = total_pnl + (pt_sell - pt_buy)
 
         pt_pnl = await per_trade_calc(pt_buy = pt_buy, pt_sell = pt_sell)
-        await websocket.send(f"{{per_trade_pnl : {pt_pnl}, total_pnl : {total_pnl}, uid : {uid}}}")
 
         """ increase the number of done trades """
         done_number_of_trades += 1
-        return done_number_of_trades, total_pnl
+        return done_number_of_trades, total_pnl, amount, sell_price
     
     except Exception as error:
         raise HTTPException(status_code=500, detail = error)
@@ -150,8 +153,34 @@ async def buy_function(response, websocket, uid, exchange, symbol, price):
                     amount,
                 )
         
+        """
+        """
+        
         if order:
             await websocket.send(f"{{status : success, order : {order}}}")
+            print(order)
+            """ 
+            Bot Trade start save in DB 
+            """
+            try:
+
+                url = "http://localhost:8007/database"
+
+                payload = json.dumps({
+                    "bot_id": str(uid),
+                    "buy_value": response,
+                    "sell_value": None,
+                    "pnl": None
+                })
+                headers = {
+                    'Content-Type': 'application/json'
+                }
+
+                dbresp = requests.request("POST", url, headers=headers, data=payload)
+                print(dbresp.text)
+
+            except Exception as error:
+                raise Exception(error)
         
         else:
             await websocket.send(f"{{status : Failed, order : {order}}}")
@@ -187,7 +216,7 @@ async def sold(
         total_pnl, 
         exchange, 
         symbol,  
-        price
+        price,
     ):
     """
     runs sell directly without any check ( to be considered )
@@ -195,7 +224,7 @@ async def sold(
     runs withdraw if last sell is None and the number of trades are completed
     thus stopping the bot and the process itself
     """
-    done_number_of_trades, total_pnl = await sell_function(
+    done_number_of_trades, total_pnl, amount, sell_price = await sell_function(
         response = response, 
         websocket = websocket, 
         uid = uid, 
@@ -205,10 +234,32 @@ async def sold(
         total_pnl = total_pnl, 
         exchange = exchange, 
         symbol = symbol, 
-        price = price
-    )
+        price = price)
+
+
     if last_sell == None and done_number_of_trades == total_number_of_trades:
-        last_sell = response
+        last_sell = sell_price
+        pnl = last_sell - initial_buy
+        """ Bot Trade start save in DB """
+        try:
+
+            url = "http://localhost:8007/database"
+
+            payload = json.dumps({
+                "bot_id": str(uid),
+                "buy_value": None,
+                "sell_value": last_sell,
+                "pnl": pnl 
+            })
+            headers = {
+                'Content-Type': 'application/json'
+            }
+
+            response = requests.request("POST", url, headers=headers, data=payload)
+            print(response.text)
+
+        except Exception as error:
+            raise Exception(error)
         
         await withdraw_function(
             response, 
