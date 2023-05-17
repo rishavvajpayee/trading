@@ -1,6 +1,8 @@
 import os
+import json
 import asyncio
 import websockets
+import requests
 from datetime import datetime
 from multiprocessing import Process
 from machine_learning.ml_api import vivek_api
@@ -29,7 +31,6 @@ class BotClass:
             total_number_of_trades = None, 
             uid = None, 
             ticker = None,
-            session_arg = None
         ):
         """
         Runs the bot instance in a subprocess
@@ -44,7 +45,6 @@ class BotClass:
         pt_sell = None
         total_pnl = 0
         symbol = ticker
-        db = session_arg
         
         while bot and done_number_of_trades < total_number_of_trades:
             """
@@ -66,28 +66,12 @@ class BotClass:
                         bot trading data.
                         """
                         
-                        """ Bot Trade start save in DB """
-                        NOW = datetime.now()
-                        dbbot = db.query(Bot).filter(Bot.id == uid).first()
-                        trade = Trade(bot_id = uid, buy_value = response, timestamp = NOW.strftime("%d/%m/%Y %H:%M:%S"))
-
-                        """
-                        DB SAVE
-                        """
-                        try:
-                            dbbot.trades.append(trade)
-                            db.add(dbbot)
-                            db.commit()
-                            db.refresh(dbbot)
                         
-                        except Exception as error:
-                            await websocket.send(f"{{message : DB update error for buy at {price}, error : {error}}}")
 
                         
                         """
                         Api to be called to get the buy sell indication
                         """
-
                         api_resp = await vivek_api()
 
                         if api_resp == None:
@@ -114,7 +98,8 @@ class BotClass:
                                 done_number_of_trades, total_pnl = await sold(
                                     response, 
                                     done_number_of_trades, 
-                                    total_number_of_trades, 
+                                    total_number_of_trades,
+                                    initial_buy, 
                                     last_sell, 
                                     websocket,
                                     uid, 
@@ -172,6 +157,7 @@ class BotClass:
                                 flag = False
                                 buyed = False
                                 print(f"{{trade complete : {done_number_of_trades}, uid : {uid}}}")
+                                break
                     
                     except Exception as error:
                         raise Exception(f"{error}")
@@ -191,7 +177,6 @@ class BotClass:
             total_number_of_trades, 
             uid, 
             ticker,
-            session_arg
         ):
         """ async process """
         asyncio.run(self.runbot(
@@ -202,7 +187,6 @@ class BotClass:
             total_number_of_trades, 
             uid, 
             ticker,
-            session_arg
         ))
 
 
@@ -215,7 +199,7 @@ async def generator(
         ticker = None, 
         user = None, 
         price = None,
-        session_arg = None
+        db = None
     ):
     """
     Takes in user values and start a bot Sub-Process.
@@ -229,7 +213,6 @@ async def generator(
             total_number_of_trades, 
             uid, 
             ticker,
-            session_arg 
             )).start()
         
         bot = Bot(name=ticker, bot_ids=uid, owner=user)
