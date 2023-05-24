@@ -52,6 +52,7 @@ class Trade(Base):
     buy_value = Column(Float)
     sell_value = Column(Float)
     timestamp = Column(DateTime)
+    pnl = Column(Float)
 
 def get_db():
     """ utility function that gets the local DB Session """
