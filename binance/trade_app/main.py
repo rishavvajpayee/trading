@@ -16,6 +16,7 @@ from authentication.signup import create_user
 from authentication.verify import verify
 
 """ FastAPI app instance """
+connected = set()
 app = FastAPI()
 
 """ Project secret key for creating session """
@@ -85,10 +86,20 @@ async def websocket_endpoint(websocket: WebSocket):
     """
     websocket endpoint and works as a ping pong server
     """
+
     await websocket.accept()
-    while True:
-        message = await websocket.receive_text()
-        await websocket.send_text(f"Echoing back: {message}")
+    connected.add(websocket)
+    try:
+        while True:
+            message = await websocket.receive_text()
+            for client in websocket:
+                await client.send_text(f"Echoing back: {message}")
+
+    except Exception as error:
+        raise HTTPException(error)
+    
+    finally:
+        connected.remove(websocket)
 
 @app.post("/login")
 async def login(user: UserLogin, request : Request, db = Depends(get_db)):

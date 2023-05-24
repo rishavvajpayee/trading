@@ -3,7 +3,6 @@ import json
 import asyncio
 import websockets
 import requests
-from datetime import datetime
 from multiprocessing import Process
 from machine_learning.ml_api import vivek_api
 from exchange_config.exchange import get_exchange
@@ -65,9 +64,6 @@ class BotClass:
                         i need to add the Trade DB setup here to update the
                         bot trading data.
                         """
-                        
-                        
-
                         
                         """
                         Api to be called to get the buy sell indication
@@ -226,7 +222,7 @@ async def generator(
     try :
         user.bots.append(bot)
         db.add(user)
-        db.commit()
+        db.commit() 
         db.refresh(user)
     
     except Exception as error:

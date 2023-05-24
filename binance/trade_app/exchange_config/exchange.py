@@ -1,4 +1,5 @@
 import os
+import ccxt
 from dotenv import load_dotenv
 
 "loads the environment variables to be accessed by this py file"

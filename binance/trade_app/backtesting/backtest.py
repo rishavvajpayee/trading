@@ -31,7 +31,7 @@ async def check(stop_loss = None, buy = None, profit = None):
     profit_margin = buy + ((profit/100) * buy)
     return stop_loss, profit_margin
 
-"""
+""" 
 TRADING BOT THAT RUNS ALL THE TIME
 """
 class TestBot:

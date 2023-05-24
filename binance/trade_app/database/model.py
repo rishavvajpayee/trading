@@ -1,6 +1,15 @@
 from pydantic import BaseModel
 from pydantic import EmailStr
 
+class Database(BaseModel):
+    """
+    db model
+    """
+    bot_id : str
+    buy_value : float or None = None
+    sell_value : float or None = None
+    pnl : float or None = None
+
 class BotModel(BaseModel):
     """
     Bot Model called for API DATA
