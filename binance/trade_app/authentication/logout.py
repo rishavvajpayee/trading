@@ -13,7 +13,6 @@ def logout(request: Request):
     """
     session = request.session
     email = session.get("email","")
-    print('-----------------',email)
     if email:
         session.clear()
         return JSONResponse(
@@ -27,26 +26,4 @@ def logout(request: Request):
         )
     
 
-def delete(request:Request,db):
-    """
-    Delete the current active User
-    """
-
-    session = request.session
-    user = db.query(User).filter(User.email == session.get('email')).first()
-    print(session.get('email'))
-    print(user)
-    if user:
-        db.delete(user)
-        db.commit
-        return JSONResponse(
-            status_code = status.HTTP_200_OK,
-            content = {"message":"Account Deleted"}
-        )
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not logged in"
-        )
-    
 
