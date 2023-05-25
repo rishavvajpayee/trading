@@ -14,6 +14,10 @@ from exchange_config.exchange import fetch_balance
 from authentication.login import logincheck
 from authentication.signup import create_user
 from authentication.verify import verify
+from authentication import logout
+from fastapi.responses import JSONResponse
+from fastapi import status
+
 from backtesting.backtest import test_generator
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -177,6 +181,36 @@ def verify_otp(user: Verify, db = Depends(get_db)):
         return HTTPException(status_code = 400, detail = f"{error}")
     
     return result
+
+@app.post("/logout")
+async def logout_user(request:Request):
+    logout.logout(request)
+
+@app.delete("/delete")
+async def delete(request:Request,db = Depends(get_db)):
+    """
+    Delete the current active User
+    """
+
+    session = request.session
+    user = db.query(User).filter(User.email == session.get('email')).first()
+    print(session.get('email'))
+    print(user)
+    if user:
+        db.delete(user)
+        db.commit()
+        return JSONResponse(
+            status_code = status.HTTP_200_OK,
+            content = {"message":"Account Deleted"}
+        )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not logged in"
+        )
+  
+
+    
 
 @app.post("/bot")
 async def bot(botdata : BotModel, request : Request,db = Depends(get_db)):
