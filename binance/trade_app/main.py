@@ -14,6 +14,9 @@ from exchange_config.exchange import fetch_balance
 from authentication.login import logincheck
 from authentication.signup import create_user
 from authentication.verify import verify
+from authentication import logout
+
+
 from backtesting.backtest import test_generator
 from fastapi.middleware.cors import CORSMiddleware
 
