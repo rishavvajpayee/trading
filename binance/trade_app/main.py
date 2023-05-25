@@ -14,14 +14,36 @@ from exchange_config.exchange import fetch_balance
 from authentication.login import logincheck
 from authentication.signup import create_user
 from authentication.verify import verify
+from backtesting.backtest import test_generator
+from fastapi.middleware.cors import CORSMiddleware
 
 """ FastAPI app instance """
-connected = set()
 app = FastAPI()
 
+origins = [
+    '*'
+    # 'http://localhost:3000',
+    # 'http://127.0.0.1:3000',
+]
+
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key='12345', 
+    max_age=None
+)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+connected = set()
 """ Project secret key for creating session """
-secret_key = secrets.token_hex(16)
-app.add_middleware(SessionMiddleware, secret_key=secret_key, max_age=1800)
+
+# print(app)
 
 @app.post('/database')
 def database(database :  Database, request : Request, db = Depends(get_db)):
@@ -66,13 +88,14 @@ def database(database :  Database, request : Request, db = Depends(get_db)):
 
 @app.get("/data")
 def data(request: Request,db = Depends(get_db)):
-    session = request.session
-    user = db.query(User).filter(User.email == session.get("email")).first()
+    sess = request.session
+    print(sess)
+    user = db.query(User).filter(User.email == sess.get("email")).first()
     if user:
         bots = db.query(Bot).join(User).filter(user.id == Bot.owner_id).all()
         return {
             "user_id" : user.id,
-            "user" : session.get("email"),
+            "user" : sess.get("email"),
             "bots" : bots
         }
     
@@ -103,12 +126,15 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.post("/login")
 async def login(user: UserLogin, request : Request, db = Depends(get_db)):
+    
     """
     Login url for users
     """
     try:
-        session = request.session
-        email = session.get("email", "")
+        sess = request.session
+        print(sess)
+        email = sess.get("email", "")
+        
         db_user = db.query(User).filter_by(email=user.email).first()
 
         if email != "" and db_user:
@@ -118,9 +144,8 @@ async def login(user: UserLogin, request : Request, db = Depends(get_db)):
                 }
         else:
             user = logincheck(db, user, db_user)
-            session = request.session
-            session["email"] = user.email
-            return session
+            sess["email"] = user.email
+            return sess
          
     
     except Exception as e:
@@ -196,4 +221,5 @@ async def bot(botdata : BotModel, request : Request,db = Depends(get_db)):
         }
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="localhost", port=8007, log_level="info", reload = True)
+    print(app)
+    uvicorn.run("main:app", host="localhost", port=8007, log_level="info", reload = False)

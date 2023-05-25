@@ -92,7 +92,7 @@ class TestBot:
 
 
 
-async def generator(exchange = None, loss = None, profit = None, total_number_of_trades = None, uid = None, ticker = None, user = None, db = None ):
+async def test_generator(exchange = None, loss = None, profit = None, total_number_of_trades = None, uid = None, ticker = None, user = None, db = None ):
     """
     Takes in user values and start a bot Sub-Process.
     """
