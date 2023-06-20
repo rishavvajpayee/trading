@@ -17,7 +17,7 @@ from authentication.verify import verify
 from authentication import logout
 from fastapi.responses import JSONResponse
 from fastapi import status
-
+from sqlalchemy.orm import joinedload
 from backtesting.backtest import test_generator
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -25,15 +25,14 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 
 origins = [
-    '*'
-    # 'http://localhost:3000',
-    # 'http://127.0.0.1:3000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
 ]
 
 app.add_middleware(
     SessionMiddleware, 
     secret_key='12345', 
-    max_age=None
+    max_age= 60 * 60 
 )
 
 
@@ -92,21 +91,34 @@ def database(database :  Database, request : Request, db = Depends(get_db)):
 
 @app.get("/data")
 def data(request: Request,db = Depends(get_db)):
-    sess = request.session
-    print(sess)
-    user = db.query(User).filter(User.email == sess.get("email")).first()
+    session = request.session
+    print(session)
+    user = db.query(User).filter(User.email == session.get("email")).first()
+
+
+    """
+    NEEDED FOR TESTING PURPOSE ONLY
+
+    bots_with_trades = db.query(Bot).options(joinedload(Bot.trades)).all()
+    for bot in bots_with_trades:
+        pass
+        for trade in bot.trades:
+            pass
+    """
+
     if user:
-        bots = db.query(Bot).join(User).filter(user.id == Bot.owner_id).all()
+        bots = db.query(Bot).options(joinedload(Bot.trades)).join(User).filter(user.id == Bot.owner_id).all()
         return {
             "user_id" : user.id,
-            "user" : sess.get("email"),
-            "bots" : bots
+            "user" : session.get("email"),
+            "bots" : bots,
         }
     
     else:
         return {
             "message" : "not Logged in"
         }
+    
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -141,7 +153,7 @@ async def login(user: UserLogin, request : Request, db = Depends(get_db)):
         
         db_user = db.query(User).filter_by(email=user.email).first()
 
-        if email != "" and db_user:
+        if email != "" and email != None and db_user:
             if email == db_user.email:
                 return {
                     'message': 'already logged in'

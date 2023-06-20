@@ -101,6 +101,7 @@ async def sell_function(
         print(balance)
         amount = balance
         current_price = await fetch_curr_price(exchange, symbol)
+        
         sell_price = balance * current_price
         order = exchange.create_order(
                     symbol,

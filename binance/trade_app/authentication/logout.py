@@ -12,18 +12,17 @@ def logout(request: Request):
     Logout the user and clear the session.
     """
     session = request.session
-    email = session.get("email","")
-    if email:
-        session.clear()
-        return JSONResponse(
-            status_code = status.HTTP_200_OK,
-            content = {"message":"Logout Successful"}
-        )
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not logged in"
-        )
-    
+    email = session.get("email")
+    try:
+        if email:
+            session.clear()
+            return {"message":"Logout Successful"}
+        else:
+            return HTTPException(
+                status_code=401,
+                detail="User not logged in"
+            )
+    except Exception as error:
+        print(error)
 
 
