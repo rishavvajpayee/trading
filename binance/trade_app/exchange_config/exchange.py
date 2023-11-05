@@ -5,49 +5,46 @@ from dotenv import load_dotenv
 "loads the environment variables to be accessed by this py file"
 load_dotenv()
 
-async def get_exchange(exchange):
 
+async def get_exchange(exchange):
     """
     Creates the instance of the Exchange you want to connect to.
     you have to create a .env file and list the credentials there first
-    in order to connect with your own exchange 
+    in order to connect with your own exchange
     """
 
     exchange_dict = {
-        "binance" :f"""ccxt.binance({{
+        "binance": f"""ccxt.binance({{
             'apiKey': "{os.environ.get("BINANCE_API_KEY")}",
             'secret': "{os.environ.get("BINANCE_API_SECRET")}",
         }})""",
-
-        "whitebit" : f"""ccxt.whitebit({{
+        "whitebit": f"""ccxt.whitebit({{
             'apiKey': "{os.environ.get("BINANCE_API_KEY")}",
             'secret': "{os.environ.get("BINANCE_API_SECRET")}",
         }})""",
-
-        "xyx" :f"""ccxt.xyz({{
+        "xyx": f"""ccxt.xyz({{
             'apiKey': "{os.environ.get("XYZ_API_KEY")}",
             'secret': "{os.environ.get("XYZ_API_SECRET")}",
         }})""",
     }
 
-    try :
+    try:
         exchange = eval(exchange_dict[f"{exchange}"])
 
     except Exception as error:
-        raise Exception(
-            "No definition of this exchange found in environment variables"
-        )
-    
+        raise Exception("No definition of this exchange found in environment variables")
+
     return exchange
 
-async def fetch_balance(exchange, coin = ""):
+
+async def fetch_balance(exchange, coin=""):
     """
-    Fetches balance from the exchange for the particular 
+    Fetches balance from the exchange for the particular
     """
     if type(exchange) == type:
         pass
 
-    elif type(exchange) == str: 
+    elif type(exchange) == str:
         exchange = await get_exchange(exchange)
 
     balance = exchange.fetch_balance()
