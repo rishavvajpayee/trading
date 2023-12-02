@@ -57,8 +57,8 @@ class BotClass:
                 ) as websocket:
                     flag = True
 
-                    """ 
-                    Exception handling for any Exceptions 
+                    """
+                    Exception handling for any Exceptions
                     """
                     try:
                         response = price
@@ -236,8 +236,8 @@ async def generator(
     except Exception as error:
         return {"status": f"Database updation failed : {error}"}
 
-    """ 
-    Once Done return values 
+    """
+    Once Done return values
     """
 
     return {

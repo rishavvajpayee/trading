@@ -166,7 +166,7 @@ async def buy_function(response, websocket, uid, exchange, symbol, price):
         if order:
             await websocket.send(f"{{status : success, order : {order}}}")
             print(order)
-            """ 
+            """
             Bot Trade start save in DB
             """
             try:

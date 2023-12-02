@@ -40,7 +40,7 @@ async def check(stop_loss=None, buy=None, profit=None):
     return stop_loss, profit_margin
 
 
-""" 
+"""
 TRADING BOT THAT RUNS ALL THE TIME
 """
 
@@ -143,8 +143,8 @@ async def test_generator(
 
     except Exception as error:
         return {"status": "Bot process start failed"}
-    """ 
-    Once Done return values 
+    """
+    Once Done return values
     """
 
     return {
