@@ -1,2 +1,7 @@
 trade
 __pycache__
+.env
+settings.json
+.pyc*
+.*
+versions
