@@ -3,12 +3,11 @@ Main FastAPI endpoints and host
 """
 import uuid
 import uvicorn
-import secrets
 from datetime import datetime
 from starlette.middleware.sessions import SessionMiddleware
 from database.model import BotModel, UserLogin, UserCreate, Verify, Database
 from fastapi import FastAPI, HTTPException, WebSocket, Depends, Request
-from database.config import get_db, User, Bot, Trade, SessionLocal
+from database.config import get_db, User, Bot, Trade
 from trading_bot.bot import generator
 from exchange_config.exchange import fetch_balance
 from authentication.login import logincheck
@@ -18,7 +17,6 @@ from authentication import logout
 from fastapi.responses import JSONResponse
 from fastapi import status
 from sqlalchemy.orm import joinedload
-from backtesting.backtest import test_generator
 from fastapi.middleware.cors import CORSMiddleware
 
 """ FastAPI app instance """
@@ -41,8 +39,6 @@ app.add_middleware(
 )
 connected = set()
 """ Project secret key for creating session """
-
-# print(app)
 
 
 @app.post("/database")

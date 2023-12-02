@@ -4,6 +4,7 @@ API CALL FOR BUY SELL DATA
 
 import requests
 
+
 async def vivek_api():
     """
     An api that gives in response similar to Supertrend API DATA
@@ -12,13 +13,13 @@ async def vivek_api():
     indicator = "supertrend"
     endpoint = f"https://api.taapi.io/{indicator}"
     parameters = {
-        'secret': key,
-        'exchange': 'binance',
-        'symbol': 'ARB/USDT',
-        'interval': '1h'
-    } 
-    
-    response = requests.get(url = endpoint, params = parameters)
-    result = response.json() 
+        "secret": key,
+        "exchange": "binance",
+        "symbol": "ARB/USDT",
+        "interval": "1h",
+    }
 
-    return result.get('valueAdvice')
+    response = requests.get(url=endpoint, params=parameters)
+    result = response.json()
+
+    return result.get("valueAdvice")

@@ -1,4 +1,3 @@
-
 import os
 import jwt
 import random
@@ -10,7 +9,8 @@ from email.mime.text import MIMEText
 
 load_dotenv()
 
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.getenv("SECRET_KEY")
+
 
 def logincheck(db, user, db_user):
     """
@@ -19,14 +19,12 @@ def logincheck(db, user, db_user):
 
     if not db_user:
         raise HTTPException(status_code=400, detail="Invalid email")
-    
-    user_password = db_user.password
-    payload1 = {
-        "password":user.password
-    }
 
-    encoded_password = jwt.encode(payload1,key=SECRET_KEY,algorithm="HS256")
-    
+    user_password = db_user.password
+    payload1 = {"password": user.password}
+
+    encoded_password = jwt.encode(payload1, key=SECRET_KEY, algorithm="HS256")
+
     if encoded_password != user_password:
         raise HTTPException(status_code=400, detail="Invalid password")
 
@@ -42,6 +40,7 @@ def logincheck(db, user, db_user):
         raise HTTPException(status_code=400, detail=f"{error}")
     return db_user
 
+
 def send_otp(to_email):
     """
     Send OTP utility function that sends
@@ -49,8 +48,8 @@ def send_otp(to_email):
     """
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
-    smtp_username = os.getenv('Admin_email')
-    smtp_password =os.getenv('Admin_password')
+    smtp_username = os.getenv("Admin_email")
+    smtp_password = os.getenv("Admin_password")
 
     otp = random.randint(1000, 9999)
 
@@ -64,7 +63,7 @@ def send_otp(to_email):
             server.starttls()
             server.login(smtp_username, smtp_password)
             server.sendmail(smtp_username, to_email, message.as_string())
-            print("send OPT= ",otp)
+            print("send OPT= ", otp)
             return otp
 
     except Exception as e:
