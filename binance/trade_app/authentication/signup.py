@@ -3,12 +3,13 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 from database.config import User
+from database.model import UserCreate
 
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 
-def create_user(db, user):
+def create_user(db, user: UserCreate):
     """
     creation of user
     """
@@ -35,6 +36,6 @@ def create_user(db, user):
             }
 
         except Exception as error:
-            return {"Status": "Creation failed"}
+            return {"Status": f"Creation failed {error}"}
     else:
         return {"Status": "Password length should be 8 characters"}

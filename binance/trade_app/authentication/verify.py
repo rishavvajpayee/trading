@@ -2,14 +2,15 @@ import datetime
 from datetime import timedelta
 from database.config import User
 from fastapi import HTTPException
+from database.model import UserCreate
 
 
-def verify(db, user):
+def verify(db, user: UserCreate):
     """
     Verify the OTP
     """
     try:
-        user_data = db.query(User).filter_by(email=user.email).first()
+        user_data: User = db.query(User).filter_by(email=user.email).first()
         given_datetime_str = user_data.created_at
 
         try:
@@ -29,13 +30,11 @@ def verify(db, user):
             ):
                 db.query(User).filter_by(email=user.email).update({"status": True})
                 db.commit()
-
                 return {"message": "Email confirmed successfully"}
 
             else:
                 db.query(User).filter_by(email=user.email).update({"status": False})
                 db.commit()
-
                 return {"Status": "Time Expired"}
 
         except Exception as error:

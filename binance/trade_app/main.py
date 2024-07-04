@@ -146,9 +146,7 @@ async def login(user: UserLogin, request: Request, db=Depends(get_db)):
     """
     try:
         sess = request.session
-        print(sess)
         email = sess.get("email", "")
-
         db_user = db.query(User).filter_by(email=user.email).first()
 
         if email != "" and email != None and db_user:
@@ -171,7 +169,6 @@ async def sign_up(user: UserCreate, db=Depends(get_db)):
     db_user = db.query(User).filter_by(email=user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already exists")
-
     result = create_user(db, user)
     return result
 

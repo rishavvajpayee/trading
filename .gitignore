@@ -1,6 +1,8 @@
 trade
 __pycache__
 .env
+env
 settings.json
 .pyc*
 versions
+.python-version
