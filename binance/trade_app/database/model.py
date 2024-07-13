@@ -8,7 +8,7 @@ class Database(BaseModel):
     """
 
     bot_id: str
-    buy_value: float or None = None
+    buy_value: float or None = None # type: ignore
     sell_value: float or None = None
     pnl: float or None = None
 
